@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Search Site</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #111;
+            color: #fff;
+        }
+
+        header {
+            background-color: #222;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #fff;
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+        }
+
+        .search-bar input {
+            padding: 10px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+
+        .search-bar button {
+            padding: 10px 15px;
+            font-size: 16px;
+            background-color: #e50914;
+            border: none;
+            color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .container {
+            padding: 20px;
+        }
+
+        .movie-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .movie-card {
+            background-color: #222;
+            border-radius: 5px;
+            overflow: hidden;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .movie-card img {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            border-bottom: 2px solid #e50914;
+        }
+
+        .movie-card h3 {
+            margin: 10px 0;
+            font-size: 18px;
+        }
+
+        .movie-card p {
+            font-size: 14px;
+            margin: 0 0 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Movie Search Site</h1>
+        <div class="search-bar">
+            <input type="text" id="search-input" placeholder="Search movies...">
+            <button id="search-button">Search</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div id="movie-grid" class="movie-grid"></div>
+    </div>
+
+    <script>
+        const apiKey = 'YOUR_TMDB_API_KEY'; // Replace with your TMDb API key
+        const baseImageUrl = 'https://image.tmdb.org/t/p/w500';
+        const movieGrid = document.getElementById('movie-grid');
+        const searchInput = document.getElementById('search-input');
+        const searchButton = document.getElementById('search-button');
+
+        // Fetch and display movies
+        async function fetchMovies(query) {
+            const url = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${query}`;
+            const response = await fetch(url);
+            const data = await response.json();
+            if (data.results && data.results.length > 0) {
+                displayMovies(data.results);
+            } else {
+                movieGrid.innerHTML = `<p>No movies found.</p>`;
+            }
+        }
+
+        function displayMovies(movies) {
+            movieGrid.innerHTML = '';
+            movies.forEach(movie => {
+                const movieCard = document.createElement('div');
+                movieCard.classList.add('movie-card');
+                movieCard.innerHTML = `
+                    <img src="${movie.poster_path ? baseImageUrl + movie.poster_path : 'https://via.placeholder.com/300x450?text=No+Image'}" alt="${movie.title}">
+                    <h3>${movie.title}</h3>
+                    <p>Release Date: ${movie.release_date || 'N/A'}</p>
+                    <p>Rating: ${movie.vote_average || 'N/A'}</p>
+                `;
+                movieGrid.appendChild(movieCard);
+            });
+        }
+
+        // Event listeners
+        searchButton.addEventListener('click', () => {
+            const query = searchInput.value.trim();
+            if (query) {
+                fetchMovies(query);
+            }
+        });
+
+        searchInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                const query = searchInput.value.trim();
+                if (query) {
+                    fetchMovies(query);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
