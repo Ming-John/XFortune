@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Movie Search Site</title>
+    <title>Fortune</title>
     <style>
         body {
             margin: 0;
@@ -87,7 +87,7 @@
 </head>
 <body>
     <header>
-        <h1>Movie Search Site</h1>
+        <h1>FX Movies</h1>
         <div class="search-bar">
             <input type="text" id="search-input" placeholder="Search movies...">
             <button id="search-button">Search</button>
@@ -99,13 +99,12 @@
     </div>
 
     <script>
-        const apiKey = '1f0e1959d9da36bea4f3866e99e0d025'; // Replace with your TMDb API key
+        const apiKey = '1f0e1959d9da36bea4f3866e99e0d025';
         const baseImageUrl = 'https://image.tmdb.org/t/p/w500';
         const movieGrid = document.getElementById('movie-grid');
         const searchInput = document.getElementById('search-input');
         const searchButton = document.getElementById('search-button');
-
-        // Fetch and display movies
+        
         async function fetchMovies(query) {
             const url = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${query}`;
             const response = await fetch(url);
@@ -132,7 +131,6 @@
             });
         }
 
-        // Event listeners
         searchButton.addEventListener('click', () => {
             const query = searchInput.value.trim();
             if (query) {
