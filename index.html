@@ -27,12 +27,12 @@
             color: #fff;
         }
 
-        .search-bar, .filters {
+        .search-bar {
             display: flex;
             align-items: center;
         }
 
-        .search-bar input, .filters select {
+        .search-bar input {
             padding: 10px;
             font-size: 16px;
             border: none;
@@ -44,19 +44,9 @@
             padding: 20px;
         }
 
-        .section {
-            margin-bottom: 40px;
-        }
-
-        .section h2 {
-            font-size: 24px;
-            margin-bottom: 20px;
-            color: #e50914;
-        }
-
         .movie-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 20px;
         }
 
@@ -77,7 +67,6 @@
             width: 100%;
             height: 300px;
             object-fit: cover;
-            border-bottom: 2px solid #e50914;
         }
 
         .movie-card h3 {
@@ -88,23 +77,6 @@
         .movie-card p {
             font-size: 14px;
             margin: 0 0 10px 0;
-        }
-
-        .pagination {
-            display: flex;
-            justify-content: center;
-            margin: 20px 0;
-        }
-
-        .pagination button {
-            padding: 10px 20px;
-            margin: 0 5px;
-            font-size: 16px;
-            background-color: #e50914;
-            border: none;
-            color: #fff;
-            border-radius: 5px;
-            cursor: pointer;
         }
 
         .modal {
@@ -124,18 +96,13 @@
             padding: 20px;
             border-radius: 10px;
             width: 80%;
-            max-width: 600px;
+            max-width: 800px;
         }
 
-        .modal-content h2 {
-            margin-top: 0;
-            color: #e50914;
-        }
-
-        .modal-content img {
+        .modal-content iframe {
             width: 100%;
-            height: auto;
-            margin-bottom: 10px;
+            height: 450px;
+            border: none;
         }
 
         .close-btn {
@@ -145,16 +112,6 @@
             padding: 10px 20px;
             cursor: pointer;
             margin-top: 10px;
-        }
-
-        .dark-mode {
-            background-color: #222;
-            color: #fff;
-        }
-
-        .light-mode {
-            background-color: #fff;
-            color: #111;
         }
 
         .spinner {
@@ -182,31 +139,11 @@
         <h1>FX Movies</h1>
         <div class="search-bar">
             <input type="text" id="search-input" placeholder="Search movies..." autocomplete="off">
-            <button id="search-button">Search</button>
         </div>
-        <div class="filters">
-            <select id="genre-select"></select>
-        </div>
-        <button id="theme-toggle">Toggle Dark/Light Mode</button>
     </header>
 
     <div class="container">
-        <div class="spinner" id="loading-spinner"></div>
-
-        <div class="section">
-            <h2>Top-Rated Movies</h2>
-            <div id="top-rated" class="movie-grid"></div>
-        </div>
-
-        <div class="section">
-            <h2>Popular Movies</h2>
-            <div id="popular" class="movie-grid"></div>
-        </div>
-
-        <div class="section">
-            <h2>Upcoming Movies</h2>
-            <div id="upcoming" class="movie-grid"></div>
-        </div>
+        <div id="loading-spinner" class="spinner"></div>
 
         <div id="movie-grid" class="movie-grid"></div>
     </div>
@@ -214,12 +151,8 @@
     <div id="movie-modal" class="modal">
         <div class="modal-content">
             <h2 id="modal-title"></h2>
-            <img id="modal-poster" src="" alt="Movie Poster">
-            <p id="modal-overview"></p>
-            <p id="modal-rating"></p>
+            <iframe id="trailer-iframe" src="" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
             <button class="close-btn" id="close-modal">Close</button>
-            <h3>Related Movies</h3>
-            <div id="related-movies" class="movie-grid"></div>
         </div>
     </div>
 
@@ -227,57 +160,46 @@
         const apiKey = '1f0e1959d9da36bea4f3866e99e0d025';
         const baseImageUrl = 'https://image.tmdb.org/t/p/w500';
         const movieGrid = document.getElementById('movie-grid');
-        const topRatedGrid = document.getElementById('top-rated');
-        const popularGrid = document.getElementById('popular');
-        const upcomingGrid = document.getElementById('upcoming');
         const searchInput = document.getElementById('search-input');
-        const genreSelect = document.getElementById('genre-select');
+        const closeModal = document.getElementById('close-modal');
         const modal = document.getElementById('movie-modal');
         const modalTitle = document.getElementById('modal-title');
-        const modalPoster = document.getElementById('modal-poster');
-        const modalOverview = document.getElementById('modal-overview');
-        const modalRating = document.getElementById('modal-rating');
-        const closeModal = document.getElementById('close-modal');
+        const trailerIframe = document.getElementById('trailer-iframe');
         const loadingSpinner = document.getElementById('loading-spinner');
-        const themeToggle = document.getElementById('theme-toggle');
 
         let currentPage = 1;
-        let currentQuery = '';
-        let currentGenre = '';
-        let currentCategory = 'popular';
+        let isLoading = false;
+        let hasMoreMovies = true; // to check if there are more movies
 
-        async function fetchGenres() {
-            const url = `https://api.themoviedb.org/3/genre/movie/list?api_key=${apiKey}`;
-            const response = await fetch(url);
-            const data = await response.json();
-            genreSelect.innerHTML = '<option value="">All Genres</option>';
-            data.genres.forEach(genre => {
-                genreSelect.innerHTML += `<option value="${genre.id}">${genre.name}</option>`;
-            });
-        }
-
-        async function fetchMovies() {
+        async function fetchMovies(query = '') {
+            if (isLoading || !hasMoreMovies) return;
+            isLoading = true;
             toggleSpinner(true);
-            let url = `https://api.themoviedb.org/3/movie/${currentCategory}?api_key=${apiKey}&page=${currentPage}`;
-            if (currentQuery) {
-                url = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${currentQuery}&page=${currentPage}`;
+
+            let url = `https://api.themoviedb.org/3/movie/popular?api_key=${apiKey}&page=${currentPage}`;
+            if (query) {
+                url = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${query}&page=${currentPage}`;
             }
-            if (currentGenre) {
-                url += `&with_genres=${currentGenre}`;
-            }
+
             const response = await fetch(url);
             const data = await response.json();
+
+            if (data.results.length === 0) {
+                hasMoreMovies = false;
+            }
+
             displayMovies(data.results);
             toggleSpinner(false);
+            currentPage++;
+            isLoading = false;
         }
 
         function displayMovies(movies) {
-            movieGrid.innerHTML = '';
             movies.forEach(movie => {
                 const movieCard = document.createElement('div');
                 movieCard.classList.add('movie-card');
                 movieCard.innerHTML = `
-                    <img src="${movie.poster_path ? baseImageUrl + movie.poster_path : 'https://via.placeholder.com/300x450?text=No+Image'}" alt="${movie.title}" loading="lazy">
+                    <img src="${movie.poster_path ? baseImageUrl + movie.poster_path : 'https://via.placeholder.com/300x450?text=No+Image'}" alt="${movie.title}">
                     <h3>${movie.title}</h3>
                     <p>Release Date: ${movie.release_date || 'N/A'}</p>
                 `;
@@ -288,65 +210,59 @@
 
         async function showMovieDetails(movie) {
             modalTitle.textContent = movie.title;
-            modalPoster.src = movie.poster_path ? baseImageUrl + movie.poster_path : 'https://via.placeholder.com/300x450?text=No+Image';
-            modalOverview.textContent = `Overview: ${movie.overview || 'N/A'}`;
-            modalRating.textContent = `Rating: ${movie.vote_average || 'N/A'}`;
-            await fetchRelatedMovies(movie.id);
+            const trailerKey = await fetchTrailer(movie.id);
+
+            if (trailerKey) {
+                trailerIframe.src = `https://www.youtube.com/embed/${trailerKey}?autoplay=1`;
+            }
+
             modal.style.display = 'flex';
         }
 
-        async function fetchRelatedMovies(movieId) {
-            const url = `https://api.themoviedb.org/3/movie/${movieId}/similar?api_key=${apiKey}`;
+        async function fetchTrailer(movieId) {
+            const url = `https://api.themoviedb.org/3/movie/${movieId}/videos?api_key=${apiKey}`;
             const response = await fetch(url);
             const data = await response.json();
-            const relatedMoviesGrid = document.getElementById('related-movies');
-            relatedMoviesGrid.innerHTML = '';
-            data.results.forEach(movie => {
-                const relatedCard = document.createElement('div');
-                relatedCard.classList.add('movie-card');
-                relatedCard.innerHTML = `
-                    <img src="${movie.poster_path ? baseImageUrl + movie.poster_path : 'https://via.placeholder.com/300x450?text=No+Image'}" alt="${movie.title}">
-                    <h3>${movie.title}</h3>
-                `;
-                relatedMoviesGrid.appendChild(relatedCard);
-            });
+
+            const youtubeTrailer = data.results.find(video => video.site === 'YouTube' && video.type === 'Trailer');
+            
+            return youtubeTrailer ? youtubeTrailer.key : null;
         }
 
         function toggleSpinner(visible) {
             loadingSpinner.style.display = visible ? 'block' : 'none';
         }
 
-        searchInput.addEventListener('input', debounceSearch);
-        genreSelect.addEventListener('change', () => {
-            currentGenre = genreSelect.value;
-            fetchMovies();
-        });
         closeModal.addEventListener('click', () => {
             modal.style.display = 'none';
-        });
-        themeToggle.addEventListener('click', () => {
-            document.body.classList.toggle('light-mode');
-            document.body.classList.toggle('dark-mode');
+            trailerIframe.src = ''; // Stop the video when modal is closed
         });
 
-        let debounceTimer;
-        function debounceSearch() {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                currentQuery = searchInput.value.trim();
-                fetchMovies();
-            }, 500);
+        searchInput.addEventListener('input', (e) => {
+            currentPage = 1; // Reset to the first page when searching
+            movieGrid.innerHTML = ''; // Clear the grid for the new search
+            hasMoreMovies = true; // Reset movie availability
+            fetchMovies(e.target.value);
+        });
+
+        async function loadMoreMovies() {
+            if (isLoading || !hasMoreMovies) return;
+            await fetchMovies(searchInput.value);
         }
 
-        fetchGenres();
-        fetchMovies();
+        // Create a sentinel element for early loading trigger
+        const sentinel = document.createElement('div');
+        movieGrid.appendChild(sentinel);
 
-        window.addEventListener('scroll', () => {
-            if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 100) {
-                currentPage++;
-                fetchMovies();
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                loadMoreMovies();
             }
-        });
+        }, { rootMargin: '100px' });  // This triggers 100px before reaching the bottom of the page
+
+        observer.observe(sentinel);
+
+        fetchMovies(); // Fetch popular movies on initial load
     </script>
 </body>
 </html>
